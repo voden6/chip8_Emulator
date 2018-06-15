@@ -70,7 +70,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 	printf("%04x %02x %02x ", pc, code[0], code[1]);
 	switch (firstByte)
 	{
-	case 0x00: printf("0 not handled yet"); break;
+	case 0x00 && code[1] == 0xE0: printf("%-10s", "CLS"); break;
 	case 0x10: printf("1 not handled yet"); break;
 	case 0x20: printf("2 not handled yet"); break;
 	case 0x30: printf("3 not handled yet"); break;
@@ -80,7 +80,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 		   {
 			   uint8_t regNum = (code[0] & 0x0f);
 			   ch8.reg[regNum] = (code[0] & 0x0f);
-			   printf("%-10s V%01X, #$%02x", "Vx==NN", ch8.reg[regNum], code[1]);
+			   printf("%-10s V%01X, #$%02x", "LD", ch8.reg[regNum], code[1]);
 		   };
 		   break;
 	case 0x70: printf("7 not handled yet") ; break;
