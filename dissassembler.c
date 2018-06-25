@@ -32,6 +32,10 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8);
 
 int main(int argc, char** argv)
 {
+	if(argc < 1)
+	{
+		printf("You did not enter a chip8 file to dissassemble");
+	}
 	chip8 ch8;
 	int fileSize;
 	FILE* chip8_Rom = fopen(argv[1], "rb");
@@ -65,22 +69,59 @@ int main(int argc, char** argv)
 void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 {
 	uint8_t* code = &buffer[pc];
-	uint8_t firstByte = (code[0] & 0xf0);
+	uint8_t firstNib = (code[0] & 0xf0);
+        uint8_t regNum = (code[0] & 0x0f);
 
 	printf("%04x %02x %02x ", pc, code[0], code[1]);
-	switch (firstByte)
+	switch (firstNib)
 	{
-	case 0x00 && code[1] == 0xE0: printf("%-10s", "CLS"); break;
-	case 0x10: printf("1 not handled yet"); break;
-	case 0x20: printf("2 not handled yet"); break;
-	case 0x30: printf("3 not handled yet"); break;
-	case 0x40: printf("4 not handled yet"); break;
-	case 0x50: printf("5 not handled yet"); break;
+	case 0x00:
+	       	   {
+			
+			 if(code[1] == 0xE0)
+			 {
+				 printf("%-10s", "CLS"); break;
+			 }
+			 else if(code[1] == 0xEE)
+			 {
+				 printf("%-10s", "RET"); break;
+			 }
+			 else
+			 {
+				 printf("%-10s #$%01X%02X", "SYS", code[0] & 0x0f, code[0]); break;
+			 }
+		   }
+	case 0x10: 
+		   {
+			 printf("%-10s #$%01X%02X", "JMP", code[0] & 0x0f , code[1]);	  
+		   };
+		   break;
+	case 0x20: {
+			 printf("%-10s #$%01X%02X", "CALL", code[0] & 0x0f, code[1]); 
+		   };
+		   break;
+	case 0x30: 
+		   {
+			   ch8.reg[regNum] = (code[0] & 0x0f);
+			   printf("%-10s V%01X, #$%02X", "SE", ch8.reg[regNum], code[1]);
+		   };
+		   break;
+	case 0x40: 
+		   {
+			   ch8.reg[regNum] = (code[0] & 0x0f);
+			   printf("%-10s V%01X, #$%02X", "SNE", ch8.reg[regNum], code[1]);
+		   };
+		   break;
+	case 0x50: 
+		   {
+			   ch8.reg[regnum] = (code[0] & 0x0f);
+			   printf("%-10s V%01x, V%01x", "SE",  );
+		   };
+		   break;
 	case 0x60:
 		   {
-			   uint8_t regNum = (code[0] & 0x0f);
 			   ch8.reg[regNum] = (code[0] & 0x0f);
-			   printf("%-10s V%01X, #$%02x", "LD", ch8.reg[regNum], code[1]);
+			   printf("%-10s V%01X, #$%02X", "LD", ch8.reg[regNum], code[1]);
 		   };
 		   break;
 	case 0x70: printf("7 not handled yet") ; break;
@@ -90,7 +131,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 	case 0xb0: printf("b not handled yet") ; break;
 	case 0xc0: printf("c not handled yet") ; break;
 	case 0xd0: printf("d not handled yet") ; break;
-	case 0xe0: printf("e not handled yet") ;  break;
+	case 0xe0: printf("e not handled yet") ; break;
 	case 0xf0: printf("f not handled yet") ; break;
 
 	}
