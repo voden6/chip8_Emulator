@@ -1,4 +1,4 @@
-				#TO-DO List
+				# TO-DO List
 * ~~Write a dissassembler~~
 * Write a game loop
 	* initialize SDL
