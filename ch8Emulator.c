@@ -2,53 +2,65 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "SDL_log.h"
+#include "ch8.h"
 
-
-typedef struct chip8
-{
-        uint8_t memory[4096];
-        uint8_t reg[16];
-        uint8_t key[16];
-        uint8_t gfx[64 * 32];
-        uint8_t delayTimer;
-        uint8_t soundTimer;
-        uint16_t I;
-        uint16_t pc;
-        uint16_t opcode[35];
-        uint16_t stack[16];
-        uint16_t sp;
-
-}chip8;
+void chip8_INIT();
+void chip8_CYCLE();
 
 int main (int argc, char *argv[])
 {
-	SDL_Window *window = NULL;
-	SDL_Surface *surface = NULL;
-	SDL_Renderer *renderer = NULL;
+	
+	SDL_Init(SDL_INIT_EVERYTHING);
+	SDL_Window* window;
+	SDL_Texture* texture;
+	SDL_Renderer* renderer;
+	SDL_Event event;
 
-	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0);
+	FILE* game = fopen(argv[1], "rb");
+	if(argc < 2)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL wasn't initialized: %s", SDL_GetError());
-		exit(EXIT_FAILURE);
+		printf("Please enter a game to Emulate");
+		return 0;
 	}
+	//fread(s->memory+0x200, 1, 
+        chip8_INIT();
 
-	window = SDL_CreateWindow("Chip8 Emulator",
-				   SDL_WINDOWPOS_CENTERED,
-				   SDL_WINDOWPOS_CENTERED,
-				   64,
-				   32,
-				   SDL_WINDOW_RESIZABLE);
-	if(window == NULL)
+	while(1)
 	{
-		printf("Could not create window: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
+		
 	}
 
 
 	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-		
-	SDL_Quit();
+
 	return 0;
 }
+
+void  chip8_INIT()
+{	
+	CH8_STATE* s = calloc(sizeof(CH8_STATE),1);
+
+	s->memory = calloc(4096,1);
+	s->screen = &s->memory[0xF00];
+	s->pc = 0x200;
+	s->sp = 0xEA00;
+	
+}
+
+void chip8_CYCLE(CH8_STATE* state)
+{
+	uint8_t* code = &state->memory[state->pc];
+	uint8_t firstnib = (code[0] & 0xF0);
+	
+	switch(firstnib)
+	{
+		case 0x00:
+			 switch(code[1])
+			 {
+				case 0xE0: break;
+			 }
+		default:
+			puts("Opcode Uninitialized"); break;
+	}
+}
+

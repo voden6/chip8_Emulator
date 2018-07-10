@@ -8,10 +8,10 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8);
 
 int main(int argc, char** argv)
 {
-	if(argc < 1)
+	if(argc < 2)
 	{
-		printf("You did not enter a chip8 file to dissassemble");
-		exit(EXIT_FAILURE);
+		printf("You did not enter a chip8 file to dissassemble\n");
+		return 1;
 	}
 
 	chip8 ch8;
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 
 	if (chip8_Rom == NULL)
 	{
-		printf("Error: File %s could not be opened", argv[1]);
+		printf("Error: File %s could not be opened\n", argv[1]);
 		exit(EXIT_FAILURE);
 	}
 
