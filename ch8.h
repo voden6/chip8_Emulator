@@ -13,7 +13,8 @@ typedef struct chip8
         uint16_t opcode;
         uint16_t sp;
         uint16_t pc;
-        uint8_t* memory;
+	uint16_t stack[0x10];
+        uint8_t memory[0x1000];
 	uint8_t* screen;
 
 }chip8, CH8_STATE;
