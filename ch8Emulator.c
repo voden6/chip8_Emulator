@@ -59,7 +59,8 @@ void loadGame(int argc, char* argv[], CH8_STATE* s)
 		printf("Please enter a game to Emulate");
 		exit(EXIT_FAILURE);
 	}
-	fread(s->memory+0x200, 1, ch8Mem, game); 
+	fread(s->memory+0x200, 1, ch8Mem, game);
+        fclose(game);	
 }
 
 void chip8_CYCLE(CH8_STATE* state)
@@ -177,14 +178,38 @@ void chip8_CYCLE(CH8_STATE* state)
 					   break;
 				case 0x06:
 					 {
+						 state->reg[0xF] = state->reg[regY] & 0x0F; 
 						 state->reg[regX] = state->reg[regY] >> 1;
+						 state->pc += 2;
 					 }
 					   break;
-				case 0x07: break;
-				case 0x0E: break;
+				case 0x07:
+					 {
+						 state->reg[regX] = state->reg[regY] - state->reg[regX];
+						 if(((int)state->reg[regY] - (int)state->reg[regX]) >= 0)
+							state->reg[0xF] = 1;
+						 else
+							state->reg[0xF] &= 0; 
+						 state->pc += 2;
+					 }
+					   break;
+				case 0x0E:
+					 {
+						 state->reg[0xF] = state->reg[regY] & 0xF0;
+						 state->reg[regY] <<= 1;
+						 state->reg[regX] = state->reg[regY];
+						 state->pc += 2;
+					 }
+					   break;
 			   }
 			   break;
-		case 0x90: break;
+		case 0x90: 
+			 {
+				if(state->reg[regX] != state-> reg[regY])
+			       		state->pc += 2;
+				state->pc += 2;		
+			 }
+			   break;
 		case 0xA0: 
 			 {
 				state->I = ((code[0] & 0xf) << 8) | code[1];
@@ -196,10 +221,46 @@ void chip8_CYCLE(CH8_STATE* state)
 				state->pc = (state->reg[0] + ((code[0] & 0x0F) << 4) | code[1]);	
 			 }
 			   break;
-		case 0xC0: break;
+		case 0xC0:
+			 {
+				state->reg[regX] = (rand() % 255) & code[1]; 
+				state->pc += 2;
+			 }
+			   break;
 		case 0xD0: break;
-		case 0xE0: break;
-		case 0xF0: break;
+		case 0xE0: 
+			 {
+				 switch(code[1])
+				 {
+					 case 0x9E: break;
+					 case 0xA1: break;
+					 default:
+						    printf("Unregistered opcode");
+				 }
+			 }
+			   break;
+		case 0xF0: 
+			 {
+				 switch(code[1])
+				 {
+					 case 0x07: break;
+					 case 0x0A: break;
+					 case 0x15: break;
+					 case 0x18: break;
+					 case 0x1E: break;
+					 case 0x29: break;
+				 	 case 0x33: break;
+					 case 0x55: break;
+					 case 0x65:
+						  {
+
+						  }
+						    break;
+					 default:
+						    printf("Unregistered opcode");
+				 }
+			 }
+			   break;
 		default:
 			puts("Opcode Uninitialized"); break;
 	}
