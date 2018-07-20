@@ -133,7 +133,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 			  {
 				  ch8.reg[regX] = (code[0] & 0x0f);
 				  ch8.reg[regY] = ((code[1] >> 4) & 0x0f);
-				  printf("%-6s V%01X, V%01X,", "AND", ch8.reg[regX], ch8.reg[regY]);
+				  printf("%-6s V%01X, V%01X", "AND", ch8.reg[regX], ch8.reg[regY]);
 			 	  break;
 			  }
 			  else if((code[1] & 0x0f) == 0x03)
@@ -161,7 +161,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 			  {
 				  ch8.reg[regX] = (code[0] & 0x0f);
 				  ch8.reg[regY] = ((code[1] >> 4) & 0x0f);
-				  printf("%-10s V%01X, {,V%01X}", "SMR", ch8.reg[regX], ch8.reg[regY]);
+				  printf("%-10s V%01X, {V%01X}", "SMR", ch8.reg[regX], ch8.reg[regY]);
 			 	  break;
 			  }
 			  else if((code[1] & 0x0f) == 0x07)
@@ -175,7 +175,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 			  {
 				  ch8.reg[regX] = (code[0] & 0x0f);
 				  ch8.reg[regY] = ((code[1] >> 4) & 0x0f);
-				  printf("%-6s V%01X, {,V%01X}", "SML", ch8.reg[regX], ch8.reg[regY]);
+				  printf("%-6s V%01X, {V%01X}", "SML", ch8.reg[regX], ch8.reg[regY]);
 			 	  break;
 			  }		  
 		   };
@@ -184,7 +184,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 		   {
 			   ch8.reg[regX] = (code[0] & 0x0f);
 		      	   ch8.reg[regY] = ((code[1] >> 4) & 0x0f);
-			   printf("%-6s V%01X, V%01X,", "SNE", ch8.reg[regX], ch8.reg[regY]);
+			   printf("%-6s V%01X, V%01X", "SNE", ch8.reg[regX], ch8.reg[regY]);
 			   break;
 
 		   };
@@ -242,7 +242,7 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 			if(code[1] == 0x15)
 			{
 		 		ch8.reg[regX] = (code[0] & 0x0f);
-		   		printf("%-6s DT, V%01X,", "LD", ch8.reg[regX]);
+		   		printf("%-6s DT, V%01X", "LD", ch8.reg[regX]);
 			}
 			if(code[1] == 0x18)
 			{
@@ -252,27 +252,27 @@ void ch8Dissassemble(uint8_t* buffer, int pc, chip8 ch8)
 			if(code[1] == 0x1E)
 			{
 		 		ch8.reg[regX] = (code[0] & 0x0f);
-		   		printf("%-7s I, V%01X,", "ADD", ch8.reg[regX]);
+		   		printf("%-7s I, V%01X", "ADD", ch8.reg[regX]);
 			}
 			if(code[1] == 0x29)
 			{
 		 		ch8.reg[regX] = (code[0] & 0x0f);
-		   		printf("%-7s F, V%01X,", "LD", ch8.reg[regX]);
+		   		printf("%-7s F, V%01X", "LD", ch8.reg[regX]);
 			}
 			if(code[1] == 0x33)
 			{
 		 		ch8.reg[regX] = (code[0] & 0x0f);
-		   		printf("%-7s B, V%01X,", "LD", ch8.reg[regX]);
+		   		printf("%-7s B, V%01X", "LD", ch8.reg[regX]);
 			}
 			if(code[1] == 0x55)
 			{
 		 		ch8.reg[regX] = (code[0] & 0x0f);
-		   		printf("%-5s [I], V%01X,", "LD", ch8.reg[regX]);
+		   		printf("%-5s [I], V%01X", "LD", ch8.reg[regX]);
 			}
 			if(code[1] == 0x65)
 			{
 		 		ch8.reg[regX] = (code[0] & 0x0f);
-		   		printf("%-5s V%01X, [I],", "LD", ch8.reg[regX]);
+		   		printf("%-6s V%01X,[I]", "LD", ch8.reg[regX]);
 			}
 
 		   };
