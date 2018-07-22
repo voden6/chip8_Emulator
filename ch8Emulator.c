@@ -9,20 +9,23 @@
 void graphics_INIT();
 CH8_STATE* chip8_INIT();
 void loadGame(int argc, char* argv[], CH8_STATE* s);
+void print_state(CH8_STATE* state);
 void chip8_CYCLE();
 
 int main (int argc, char* argv[])
 {
 	SDL_Event event;
 	int running = 1;
+	int count = 0;
 	CH8_STATE* state = chip8_INIT(); 
 
 	graphics_INIT();
 	loadGame(argc, argv, state);
 
-
-	while(running)
-	{
+	while(count < 15)
+	{	
+		printf("PC: %04X ", state->pc);
+		count++;	
 		chip8_CYCLE(state);
 	}
 
@@ -43,11 +46,15 @@ void graphics_INIT()
 
 CH8_STATE*  chip8_INIT()
 {
-	CH8_STATE* s = calloc(sizeof(CH8_STATE),1);
-	
-	s->screen = &s->memory[0xF00];
+	CH8_STATE* s = calloc(sizeof(CH8_STATE), 1);
+
 	s->pc = 0x200;
-	s->sp = 0xEA0;
+	s->sp = 0;
+	s->I = 0;
+	
+	memset(s->reg, 0, 0x10);
+	memset(s->stack, 0, 0x10);
+	memcpy(s->memory+0x17F, ch8_fontset, 80);
 	
 	return s;
 }
@@ -57,11 +64,32 @@ void loadGame(int argc, char* argv[], CH8_STATE* s)
 	FILE* game = fopen(argv[1], "rb");
 	if(argc < 2)
 	{
-		printf("Please enter a Chip8 ROM...");
+		printf("Please enter a Chip8 ROM...\n");
 		exit(EXIT_FAILURE);
 	}
 	fread(s->memory+0x200, 1, ch8Mem, game);
         fclose(game);	
+}
+void print_state(CH8_STATE* state)
+{
+	uint8_t* code = &state->memory[state->pc];
+	uint8_t opNib = code[0] & 0xF0;
+	uint8_t regX = (code[0] & 0x0F);
+	uint8_t regY = ((code[1] >> 4) & 0x0F);
+	printf("Executing %02X%02X, PC: %04X, Stack %04X, SP %02X, I %04X, ", code[0], code[1], state->pc, state->stack[state->sp - 1], state->sp, state->I);
+	if(opNib == 0x00 || opNib == 0x10 || opNib == 0x20 || opNib == 0xA0 || opNib == 0xB0)
+	{
+		printf(" ");
+	}
+	else
+	{
+		printf("Reg%01X: %02X, ", regX, state->reg[regX]);
+	}
+	if(opNib == 0x50 || opNib == 0x80 || opNib == 0x90 || opNib == 0xD0)
+	{
+		printf("Reg%01X: %02X", regY, state->reg[regY]);
+	}
+	puts("");	
 }
 
 void chip8_CYCLE(CH8_STATE* state)
@@ -71,7 +99,7 @@ void chip8_CYCLE(CH8_STATE* state)
 	uint8_t regX = (code[0] & 0x0F);
 	uint8_t regY = ((code[1] >> 4) & 0x0F);
 
-	printf("Executing %02X%02X, PC: %04X, SP %04X\n", code[0], code[1], state->pc, state->sp);	
+	print_state(state);
 	switch(firstnib)
 	{
 		case 0x00:
@@ -79,14 +107,15 @@ void chip8_CYCLE(CH8_STATE* state)
 			 {
 				case 0xE0: 
 					{
-						memset(state->graphics, 0, sizeof(state->graphics));
+						memset(state->gfx, 0, 0x800);
 						state->pc += 2;
 					}
 					break;
 				case 0xEE:
 					{
-						state->pc = state->stack[state->sp];
-						state->pc += 2;
+						state->pc = state->stack[state->sp - 1] + 2;
+						state->sp--;
+						printf("1: Executing %02X%02X, PC: %04X, Stack %04X, SP %02X, I %04X,\n", code[0], code[1], state->pc, state->stack[state->sp - 1], state->sp, state->I);
 					}
 					break;
 				default: break;
@@ -94,12 +123,16 @@ void chip8_CYCLE(CH8_STATE* state)
 		case 0x01:
 			 {
 				uint16_t jmp_addr = ((code[0] & 0xF) << 8 | code[1]);
+				//printf("jmp_addr: %04X", jmp_addr);
 				state->pc = jmp_addr;
-				break;
 		 	 }
+			   break;
 		case 0x20: 
 			 {
-				state->pc += 2;
+				state->stack[state->sp] = state->pc;
+				state->sp++;
+				state->pc = ((code[0] & 0xF) << 8 | code[1]);
+				printf("2: Executing %02X%02X, PC: %04X, Stack %04X, SP %02X, I %04X,\n", code[0], code[1], state->pc, state->stack[state->sp - 1], state->sp, state->I);
 			 }
 			   break;
 		case 0x30: 
@@ -127,6 +160,7 @@ void chip8_CYCLE(CH8_STATE* state)
 			 {
 				state->reg[regX] = code[1];
 				state->pc += 2;
+				//printf("Reg%01X: %04X", regX, state->reg[regX]);
 			 }
 			   break;
 		case 0x70:
@@ -208,6 +242,9 @@ void chip8_CYCLE(CH8_STATE* state)
 						 state->pc += 2;
 					 }
 					   break;
+				default:
+					 printf("Unregistered Opcode: 8***\n");
+					 exit(EXIT_FAILURE);
 			   }
 			   break;
 		case 0x90: 
@@ -254,7 +291,8 @@ void chip8_CYCLE(CH8_STATE* state)
 						  }
 						    break;
 					 default:
-						    printf("Unregistered opcode");
+						    printf("Unregistered opcode: E***\n");
+						    exit(EXIT_FAILURE);
 				 }
 			 }
 			   break;
@@ -296,7 +334,7 @@ void chip8_CYCLE(CH8_STATE* state)
 						    break;
 				 	 case 0x33: 
 						  {
-
+							  
 							  state->pc += 2;
 						  }
 						    break;
@@ -319,14 +357,14 @@ void chip8_CYCLE(CH8_STATE* state)
 						  }
 						    break;
 					 default:
-						    printf("Unregistered opcode");
+						    printf("Unregistered opcode: F***\n");
+						    exit(EXIT_FAILURE);
 				 }
 			 }
 			   break;
 		default:
 			puts("Opcode Uninitialized");
 		        exit(EXIT_FAILURE);
-			break;
 	}
 }
 

@@ -10,17 +10,17 @@ typedef struct chip8
         uint8_t delayTimer;
         uint8_t soundTimer;
         uint16_t I;
-        uint16_t opcode;
         uint16_t sp;
         uint16_t pc;
-	uint8_t graphics[64 * 32];
 	uint16_t stack[0x10];
         uint8_t memory[0x1000];
+	uint8_t gfx[64*32];
 	uint8_t* screen;
 
 }chip8, CH8_STATE;
 
-unsigned char ch8_fontset[80] =
+uint8_t ch8_fontset[80] =
+
 {
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
