@@ -6,26 +6,42 @@
 
 #define ch8Mem 4096
 
+uint16_t keys[16] = 
+{ SDLK_1, SDLK_2, SDLK_3, SDLK_4,
+  SDLK_q, SDLK_w, SDLK_e, SDLK_r,
+  SDLK_a, SDLK_s, SDLK_d, SDLK_f,
+  SDLK_z, SDLK_x, SDLK_c, SDLK_v
+};  
+
 void graphics_INIT();
 CH8_STATE* chip8_INIT();
 void loadGame(int argc, char* argv[], CH8_STATE* s);
 void print_state(CH8_STATE* state);
 void chip8_CYCLE();
+void ch8_updateTimers(CH8_STATE* state);
 
 int main (int argc, char* argv[])
 {
+	
+	SDL_Init(SDL_INIT_EVERYTHING);
+	SDL_Window* window;
+	SDL_Texture* texture;
+	SDL_Renderer* renderer;
 	SDL_Event event;
-	int running = 1;
-	int count = 0;
+	
+	//int running = 1;
+	//int count = 0;
 	CH8_STATE* state = chip8_INIT(); 
 
 	graphics_INIT();
 	loadGame(argc, argv, state);
 
-	while(running)
+	while(SDL_PollEvent(&event))
 	{	
-		//count++;	
 		chip8_CYCLE(state);
+		//run graphics
+		//run keyboard input
+
 	}
 
 
@@ -36,13 +52,7 @@ int main (int argc, char* argv[])
 
 void graphics_INIT()
 {
-	/*
-	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_Window* window;
-	SDL_Texture* texture;
-	SDL_Renderer* renderer;
-	SDL_Event event;
-	*/
+	//will be used for structuring and reorganization later
 }
 
 CH8_STATE*  chip8_INIT()
@@ -55,9 +65,19 @@ CH8_STATE*  chip8_INIT()
 	
 	memset(s->reg, 0, 0x10);
 	memset(s->stack, 0, 32);
-	memcpy(s->memory+0x17F, ch8_fontset, 80);
+	memcpy(s->memory+0x0, ch8_fontset, 80);
 	
 	return s;
+}
+
+void ch8_UpdateTimers(CH8_STATE* state)
+{
+	if(state->delayTimer > 0)
+		--state->delayTimer;
+	if(state->soundTimer > 0)
+		if(state->soundTimer == 1)
+			puts("beep!");
+		--state->soundTimer;
 }
 
 void loadGame(int argc, char* argv[], CH8_STATE* s)
@@ -71,6 +91,7 @@ void loadGame(int argc, char* argv[], CH8_STATE* s)
 	fread(s->memory+0x200, 1, ch8Mem, game);
         fclose(game);	
 }
+
 void print_state(CH8_STATE* state)
 {
 	uint8_t* code = &state->memory[state->pc];
@@ -95,6 +116,7 @@ void print_state(CH8_STATE* state)
 
 void chip8_CYCLE(CH8_STATE* state)
 {
+	Uint8* keyState = SDL_GetKeyState(NULL);
 	uint8_t* code = &state->memory[state->pc];
 	uint8_t firstnib = (code[0] & 0xF0);
 	uint8_t regX = (code[0] & 0x0F);
@@ -117,7 +139,7 @@ void chip8_CYCLE(CH8_STATE* state)
 				default: break;
 			}
 			break;
-		case 0x01:
+		case 0x10:
 			{
 				uint16_t jmp_addr = ((code[0] & 0xF) << 8 | code[1]);
 				state->pc = jmp_addr;
@@ -265,7 +287,8 @@ void chip8_CYCLE(CH8_STATE* state)
 					state->I += state->reg[regX];
 					state->pc += 2;
 					break;
-				case 0x29: 
+				case 0x29:
+				        state->I = (state->reg[regX] * 5);	
 					state->pc += 2;
 					break;
 				case 0x33: 
