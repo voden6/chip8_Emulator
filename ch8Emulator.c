@@ -6,6 +6,8 @@
 #include "ch8.h"
 
 #define ch8Mem 4096
+#define DISPLAY_WIDTH 640
+#define DISPLAY_HEIGHT 480	
 
 //temporary location
 uint16_t keymap[16] = 
@@ -23,6 +25,10 @@ void ch8_CYCLE();
 void ch8_updateTimers(CH8_STATE* state);
 void ch8_drawGraphics();
 void ch8_setKeys();
+void ch8_Quit();
+
+typedef struct {	
+}SDL_ch8;
 
 int main (int argc, char* argv[])
 {	
@@ -31,18 +37,24 @@ int main (int argc, char* argv[])
 	SDL_Texture* texture = NULL;
 	SDL_Event event;
 	const Uint8* keyState = SDL_GetKeyboardState(NULL);
-	int count = 0;	
+	//int count = 0;	
 	
 	bool running = true;
 	CH8_STATE* state = chip8_INIT(); 
-	
-	
+		
 	if(SDL_Init(SDL_INIT_EVERYTHING) < 0)
 	{
-		
+		printf("SDL error: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);	
 	}
 	
-	ch8_graphicsINIT();
+	if(SDL_CreateWindowAndRenderer(DISPLAY_WIDTH, DISPLAY_HEIGHT, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0)
+	{
+		printf("SDL Error: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+		
+	//ch8_graphicsINIT();
 	ch8_loadGame(argc, argv, state);
 
 	
@@ -55,23 +67,33 @@ int main (int argc, char* argv[])
 				exit(EXIT_SUCCESS);	
 			}
 		ch8_CYCLE(state);
-		//run graphics
-		//run keyboard input
-		count++;
+		//ch8_drawGraphics();
+		//ch8_setKeys();
+		//count++;
 	}
-
+	
+	//ch8_Quit();
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_DestroyTexture(texture);
 
 	SDL_Quit();
-	
 	return 0;
+}
+
+void ch8_Quit()
+{
+	//frees all pointers and graphics
 }
 
 void ch8_graphicsINIT()
 {
-	//will be used for structuring and reorganization later
+	//initialized SDL
+}
+
+void ch8_drawGraphics()
+{
+	//draws graphics to screen
 }
 
 CH8_STATE*  chip8_INIT()
