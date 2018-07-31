@@ -2,55 +2,74 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "ch8.h"
 
 #define ch8Mem 4096
 
-uint16_t keys[16] = 
+//temporary location
+uint16_t keymap[16] = 
 { SDLK_1, SDLK_2, SDLK_3, SDLK_4,
   SDLK_q, SDLK_w, SDLK_e, SDLK_r,
   SDLK_a, SDLK_s, SDLK_d, SDLK_f,
   SDLK_z, SDLK_x, SDLK_c, SDLK_v
 };  
 
-void graphics_INIT();
 CH8_STATE* chip8_INIT();
-void loadGame(int argc, char* argv[], CH8_STATE* s);
-void print_state(CH8_STATE* state);
-void chip8_CYCLE();
+void ch8_graphicsINIT();
+void ch8_loadGame(int argc, char* argv[], CH8_STATE* s);
+void ch8_printState(CH8_STATE* state);
+void ch8_CYCLE();
 void ch8_updateTimers(CH8_STATE* state);
+void ch8_drawGraphics();
+void ch8_setKeys();
 
 int main (int argc, char* argv[])
-{
-	
-	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_Window* window;
-	SDL_Texture* texture;
-	SDL_Renderer* renderer;
+{	
+	SDL_Window* window = NULL;
+	SDL_Renderer* renderer = NULL;
+	SDL_Texture* texture = NULL;
 	SDL_Event event;
+	const Uint8* keyState = SDL_GetKeyboardState(NULL);
+	int count = 0;	
 	
-	//int running = 1;
-	//int count = 0;
+	bool running = true;
 	CH8_STATE* state = chip8_INIT(); 
+	
+	
+	if(SDL_Init(SDL_INIT_EVERYTHING) < 0)
+	{
+		
+	}
+	
+	ch8_graphicsINIT();
+	ch8_loadGame(argc, argv, state);
 
-	graphics_INIT();
-	loadGame(argc, argv, state);
-
-	while(SDL_PollEvent(&event))
-	{	
-		chip8_CYCLE(state);
+	
+	while(running)
+	{
+		if(SDL_PollEvent(&event))
+			if(keyState[SDLK_ESCAPE])
+			{
+				running = false;
+				exit(EXIT_SUCCESS);	
+			}
+		ch8_CYCLE(state);
 		//run graphics
 		//run keyboard input
-
+		count++;
 	}
 
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_DestroyTexture(texture);
 
-	//SDL_DestroyRenderer(renderer);
-
+	SDL_Quit();
+	
 	return 0;
 }
 
-void graphics_INIT()
+void ch8_graphicsINIT()
 {
 	//will be used for structuring and reorganization later
 }
@@ -65,7 +84,7 @@ CH8_STATE*  chip8_INIT()
 	
 	memset(s->reg, 0, 0x10);
 	memset(s->stack, 0, 32);
-	memcpy(s->memory+0x0, ch8_fontset, 80);
+	memcpy(&s->memory[0x0], ch8_fontset, 80);
 	
 	return s;
 }
@@ -80,7 +99,7 @@ void ch8_UpdateTimers(CH8_STATE* state)
 		--state->soundTimer;
 }
 
-void loadGame(int argc, char* argv[], CH8_STATE* s)
+void ch8_loadGame(int argc, char* argv[], CH8_STATE* s)
 {
 	FILE* game = fopen(argv[1], "rb");
 	if(argc < 2)
@@ -92,7 +111,7 @@ void loadGame(int argc, char* argv[], CH8_STATE* s)
         fclose(game);	
 }
 
-void print_state(CH8_STATE* state)
+void ch8_printState(CH8_STATE* state)
 {
 	uint8_t* code = &state->memory[state->pc];
 	uint8_t opNib = code[0] & 0xF0;
@@ -114,15 +133,15 @@ void print_state(CH8_STATE* state)
 	puts("");	
 }
 
-void chip8_CYCLE(CH8_STATE* state)
+void ch8_CYCLE(CH8_STATE* state)
 {
-	Uint8* keyState = SDL_GetKeyState(NULL);
+	const Uint8* keyState = SDL_GetKeyboardState(NULL);
 	uint8_t* code = &state->memory[state->pc];
 	uint8_t firstnib = (code[0] & 0xF0);
 	uint8_t regX = (code[0] & 0x0F);
 	uint8_t regY = ((code[1] >> 4) & 0x0F);
 
-	print_state(state);
+	ch8_printState(state);
 	switch(firstnib)
 	{
 		case 0x00:
@@ -236,7 +255,7 @@ void chip8_CYCLE(CH8_STATE* state)
 			state->pc += 2;		
 			break;
 		case 0xA0: 
-			state->I = ((code[0] & 0xf) << 8) | code[1];
+			state->I = ((code[0] & 0xF) << 8) | code[1];
 			state->pc += 2;
 			break;
 		case 0xB0: 
@@ -249,15 +268,37 @@ void chip8_CYCLE(CH8_STATE* state)
 		case 0xD0: 
 			{
 				uint8_t height = (code[1] & 0x0F);
-				state->pc += 2;
-			} break;
+				uint8_t pixel;
+				state->reg[0xF] = 0x00;
+				for(int y = 0; y < height; y++)
+				{
+					pixel = state->memory[state->I + y];
+					for(int x = 0; x < 8; x++)
+					{
+						if(pixel & (0x80 >> x) != 0)
+						{
+							if(state->gfx[(regX + x + ((regY + y) * 64))] == 1)
+							{
+								state->reg[0xF] = 0x01;
+							}
+							state->gfx[regX + x + ((regY + y) * 64)] ^= 64;
+						}	
+					}
+				}
+			} 
+			state->pc += 2;
+			break;
 		case 0xE0: 
 			switch(code[1])
 			{
 				case 0x9E:
+					if(keyState[keymap[state->reg[regX]]])
+						state->pc += 2;
 					state->pc += 2;
 					break;
-				case 0xA1:
+				case 0xA1:	
+					if(!keyState[keymap[state->reg[regX]]])
+						state->pc += 2;
 					state->pc += 2;
 					break;
 				default:
@@ -273,7 +314,14 @@ void chip8_CYCLE(CH8_STATE* state)
 					state->pc += 2;
 					break;
 				case 0x0A:
-					state->pc += 2;
+					for(int i = 0; i < 0x10; i++)
+					{
+						if (keyState[keymap[i]])
+						{
+							state->reg[regX] = i;
+							state->pc += 2;
+						}
+					}
 					break;
 				case 0x15: 
 					state->delayTimer = state->reg[regX];
@@ -316,5 +364,7 @@ void chip8_CYCLE(CH8_STATE* state)
 		puts("Opcode Uninitialized");
 		exit(EXIT_FAILURE);
 	}
+	ch8_UpdateTimers(state);
 }
+
 
