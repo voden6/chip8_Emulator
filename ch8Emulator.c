@@ -35,6 +35,7 @@ int main (int argc, char* argv[])
 	SDL_Window* window = NULL;
 	SDL_Renderer* renderer = NULL;
 	SDL_Texture* texture = NULL;
+	SDL_Surface* surface = NULL;
 	SDL_Event event;
 	const Uint8* keyState = SDL_GetKeyboardState(NULL);
 	//int count = 0;	
@@ -53,7 +54,12 @@ int main (int argc, char* argv[])
 		printf("SDL Error: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
+	
+	SDL_SetWindowTitle(window, "Chip8 Emulator");
 		
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_TARGET, DISPLAY_WIDTH, DISPLAY_HEIGHT);	
+	SDL_setRenderTarget(renderer, texture);
+	SDL_RenderClear(renderer);
 	//ch8_graphicsINIT();
 	ch8_loadGame(argc, argv, state);
 
@@ -93,7 +99,7 @@ void ch8_graphicsINIT()
 
 void ch8_drawGraphics()
 {
-	//draws graphics to screen
+	
 }
 
 CH8_STATE*  chip8_INIT()
