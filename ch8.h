@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <stdbool.h>
 
 typedef struct chip8
 {
@@ -15,7 +15,7 @@ typedef struct chip8
 	uint16_t stack[0x10];
         uint8_t memory[0x1000];
 	uint8_t gfx[64*32];
-	uint8_t* screen;
+	bool draw;
 
 }chip8, CH8_STATE;
 

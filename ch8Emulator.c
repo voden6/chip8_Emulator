@@ -15,90 +15,98 @@ uint16_t keymap[16] =
   SDLK_q, SDLK_w, SDLK_e, SDLK_r,
   SDLK_a, SDLK_s, SDLK_d, SDLK_f,
   SDLK_z, SDLK_x, SDLK_c, SDLK_v
-};  
+};
+  
+typedef struct screen 
+{
+	SDL_Window* window;
+	SDL_Renderer* renderer;
+	SDL_Texture* texture;
+}screen;
 
 CH8_STATE* chip8_INIT();
-void ch8_graphicsINIT();
+screen* ch8_graphicsINIT();
 void ch8_loadGame(int argc, char* argv[], CH8_STATE* s);
 void ch8_printState(CH8_STATE* state);
 void ch8_CYCLE();
 void ch8_updateTimers(CH8_STATE* state);
-void ch8_drawGraphics();
+void ch8_drawGraphics(screen* display, CH8_STATE* state);
 void ch8_setKeys();
-void ch8_Quit();
-
-typedef struct {	
-}SDL_ch8;
+void ch8_Quit(screen* display);
 
 int main (int argc, char* argv[])
 {	
-	SDL_Window* window = NULL;
-	SDL_Renderer* renderer = NULL;
-	SDL_Texture* texture = NULL;
-	SDL_Surface* surface = NULL;
 	SDL_Event event;
 	const Uint8* keyState = SDL_GetKeyboardState(NULL);
-	//int count = 0;	
-	
 	bool running = true;
-	CH8_STATE* state = chip8_INIT(); 
-		
-	if(SDL_Init(SDL_INIT_EVERYTHING) < 0)
-	{
-		printf("SDL error: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);	
-	}
 	
-	if(SDL_CreateWindowAndRenderer(DISPLAY_WIDTH, DISPLAY_HEIGHT, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0)
-	{
-		printf("SDL Error: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-	
-	SDL_SetWindowTitle(window, "Chip8 Emulator");
-		
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_TARGET, DISPLAY_WIDTH, DISPLAY_HEIGHT);	
-	SDL_setRenderTarget(renderer, texture);
-	SDL_RenderClear(renderer);
-	//ch8_graphicsINIT();
+	screen* display = ch8_graphicsINIT();
+	CH8_STATE* state = chip8_INIT(); 	
+
 	ch8_loadGame(argc, argv, state);
 
 	
 	while(running)
 	{
 		if(SDL_PollEvent(&event))
-			if(keyState[SDLK_ESCAPE])
+			if(event.type == SDL_QUIT || keyState[SDLK_ESCAPE])
 			{
 				running = false;
 				exit(EXIT_SUCCESS);	
 			}
 		ch8_CYCLE(state);
-		//ch8_drawGraphics();
+		ch8_drawGraphics(display, state);
 		//ch8_setKeys();
 		//count++;
 	}
 	
-	//ch8_Quit();
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-	SDL_DestroyTexture(texture);
+	ch8_Quit(display);
 
 	SDL_Quit();
 	return 0;
 }
 
-void ch8_Quit()
+void ch8_Quit(screen* display)
 {
-	//frees all pointers and graphics
+	SDL_DestroyRenderer(display->renderer);
+	SDL_DestroyWindow(display->window);
+	SDL_DestroyTexture(display->texture);
 }
 
-void ch8_graphicsINIT()
+screen* ch8_graphicsINIT()
 {
-	//initialized SDL
+	screen* disp = malloc(sizeof(screen));
+	
+	if(SDL_Init(SDL_INIT_EVERYTHING) < 0)
+	{
+		printf("SDL error: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);	
+	}
+	
+	disp->window = SDL_CreateWindow("Chip8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH, DISPLAY_HEIGHT, SDL_WINDOW_RESIZABLE); 
+	if(disp->window == NULL)
+	{
+		printf("SDL Error: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+	
+	disp->renderer = SDL_CreateRenderer(disp->window, -1, SDL_RENDERER_ACCELERATED);
+	if(disp->renderer == NULL)
+	{
+		printf("SDL Error: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}	
+
+	disp->texture = SDL_CreateTexture(disp->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+
+	return disp;
 }
 
-void ch8_drawGraphics()
+void ch8_drawGraphics(screen* display, CH8_STATE* state)
 {
+	SDL_UpdateTexture(display->texture, NULL, state->gfx, 0);
+	SDL_RenderCopy(display->renderer, display->texture, NULL, NULL);
+	SDL_RenderPresent(display->renderer);
 	
 }
 
@@ -305,11 +313,12 @@ void ch8_CYCLE(CH8_STATE* state)
 					{
 						if(pixel & (0x80 >> x) != 0)
 						{
-							if(state->gfx[(regX + x + ((regY + y) * 64))] == 1)
+							if(state->gfx[(state->reg[regX] + x + ((state->reg[regY] + y) * 64))] == 1)
 							{
 								state->reg[0xF] = 0x01;
 							}
-							state->gfx[regX + x + ((regY + y) * 64)] ^= 64;
+							state->gfx[state->reg[regX] + x + ((state->reg[regY] + y) * 64)] ^= 64;
+							state->draw = 0;
 						}	
 					}
 				}
