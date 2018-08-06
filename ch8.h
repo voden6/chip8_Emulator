@@ -14,7 +14,7 @@ typedef struct chip8
         uint16_t pc;
 	uint16_t stack[0x10];
         uint8_t memory[0x1000];
-	uint8_t gfx[64*32];
+	uint32_t gfx[64*32];
 	bool draw;
 
 }chip8, CH8_STATE;

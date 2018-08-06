@@ -6,8 +6,13 @@
 #include "ch8.h"
 
 #define ch8Mem 4096
-#define DISPLAY_WIDTH 640
-#define DISPLAY_HEIGHT 480	
+#define DISPLAY_WIDTH 64
+#define DISPLAY_HEIGHT 32	
+#define PIXEL_ON 0x000000
+#define PIXEL_OFF 0xFFFFFF
+#define SCALE 10
+#define FRAMES_PER_SECOND 60
+#define MILLISECONDS_PER_CYCLE ((1000)/ (FRAMES_PER_SECOND))
 
 //temporary location
 uint16_t keymap[16] = 
@@ -17,7 +22,7 @@ uint16_t keymap[16] =
   SDLK_z, SDLK_x, SDLK_c, SDLK_v
 };
   
-typedef struct screen 
+typedef struct 
 {
 	SDL_Window* window;
 	SDL_Renderer* renderer;
@@ -31,23 +36,26 @@ void ch8_printState(CH8_STATE* state);
 void ch8_CYCLE();
 void ch8_updateTimers(CH8_STATE* state);
 void ch8_drawGraphics(screen* display, CH8_STATE* state);
-void ch8_setKeys();
 void ch8_Quit(screen* display);
 
 int main (int argc, char* argv[])
 {	
+	uint32_t start_tick;
+	uint32_t frame_speed;
+
 	SDL_Event event;
 	const Uint8* keyState = SDL_GetKeyboardState(NULL);
 	bool running = true;
 	
-	screen* display = ch8_graphicsINIT();
 	CH8_STATE* state = chip8_INIT(); 	
+	screen* display = ch8_graphicsINIT();
 
 	ch8_loadGame(argc, argv, state);
 
 	
 	while(running)
 	{
+		start_tick = SDL_GetTicks();
 		if(SDL_PollEvent(&event))
 			if(event.type == SDL_QUIT || keyState[SDLK_ESCAPE])
 			{
@@ -55,14 +63,24 @@ int main (int argc, char* argv[])
 				exit(EXIT_SUCCESS);	
 			}
 		ch8_CYCLE(state);
-		ch8_drawGraphics(display, state);
-		//ch8_setKeys();
-		//count++;
+		if(state->draw == true) 
+		{
+			ch8_drawGraphics(display, state);
+			state->draw = false;
+		}
+		
+		frame_speed = SDL_GetTicks() - start_tick;
+		if(frame_speed < MILLISECONDS_PER_CYCLE)
+		{
+			SDL_Delay(MILLISECONDS_PER_CYCLE - frame_speed);
+		}
 	}
-	
+
+
+	free(display);
+	free(state);	
 	ch8_Quit(display);
 
-	SDL_Quit();
 	return 0;
 }
 
@@ -71,6 +89,8 @@ void ch8_Quit(screen* display)
 	SDL_DestroyRenderer(display->renderer);
 	SDL_DestroyWindow(display->window);
 	SDL_DestroyTexture(display->texture);
+	
+	SDL_Quit();
 }
 
 screen* ch8_graphicsINIT()
@@ -83,7 +103,7 @@ screen* ch8_graphicsINIT()
 		exit(EXIT_FAILURE);	
 	}
 	
-	disp->window = SDL_CreateWindow("Chip8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH, DISPLAY_HEIGHT, SDL_WINDOW_RESIZABLE); 
+	disp->window = SDL_CreateWindow("Chip8 Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, DISPLAY_WIDTH * SCALE, DISPLAY_HEIGHT * SCALE, SDL_WINDOW_SHOWN); 
 	if(disp->window == NULL)
 	{
 		printf("SDL Error: %s\n", SDL_GetError());
@@ -97,14 +117,18 @@ screen* ch8_graphicsINIT()
 		exit(EXIT_FAILURE);
 	}	
 
-	disp->texture = SDL_CreateTexture(disp->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-
+	disp->texture = SDL_CreateTexture(disp->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+	if(disp->texture == NULL)
+	{
+		printf("SDL_Error: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
 	return disp;
 }
 
 void ch8_drawGraphics(screen* display, CH8_STATE* state)
 {
-	SDL_UpdateTexture(display->texture, NULL, state->gfx, 0);
+	SDL_UpdateTexture(display->texture, NULL, state->gfx, DISPLAY_WIDTH * sizeof(uint32_t));
 	SDL_RenderCopy(display->renderer, display->texture, NULL, NULL);
 	SDL_RenderPresent(display->renderer);
 	
@@ -121,6 +145,7 @@ CH8_STATE*  chip8_INIT()
 	memset(s->reg, 0, 0x10);
 	memset(s->stack, 0, 32);
 	memcpy(&s->memory[0x0], ch8_fontset, 80);
+	memset(s->gfx, 0, 0x800);
 	
 	return s;
 }
@@ -305,20 +330,25 @@ void ch8_CYCLE(CH8_STATE* state)
 			{
 				uint8_t height = (code[1] & 0x0F);
 				uint8_t pixel;
-				state->reg[0xF] = 0x00;
+				state->reg[0xF] = 0x0;
 				for(int y = 0; y < height; y++)
 				{
 					pixel = state->memory[state->I + y];
 					for(int x = 0; x < 8; x++)
 					{
-						if(pixel & (0x80 >> x) != 0)
+						if(pixel & (0x80 >> x))
 						{
-							if(state->gfx[(state->reg[regX] + x + ((state->reg[regY] + y) * 64))] == 1)
+							int index = (state->reg[regX] + x) % DISPLAY_WIDTH + ((state->reg[regY] + y) % DISPLAY_HEIGHT) * DISPLAY_WIDTH;
+							if(state->gfx[index] == PIXEL_ON)
 							{
-								state->reg[0xF] = 0x01;
+								state->reg[0xF] = 0x1;
+								state->gfx[index] = PIXEL_OFF;
 							}
-							state->gfx[state->reg[regX] + x + ((state->reg[regY] + y) * 64)] ^= 64;
-							state->draw = 0;
+							else
+							{
+								state->gfx[index] = PIXEL_ON;
+							}
+							state->draw = true;
 						}	
 					}
 				}
