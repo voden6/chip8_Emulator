@@ -8,18 +8,18 @@
 #define ch8Mem 4096
 #define DISPLAY_WIDTH 64
 #define DISPLAY_HEIGHT 32	
-#define PIXEL_ON 0x000000
-#define PIXEL_OFF 0xFFFFFF
+#define PIXEL_OFF 0x000000
+#define PIXEL_ON 0xFFFFFF
 #define SCALE 10
 #define FRAMES_PER_SECOND 60
 #define MILLISECONDS_PER_CYCLE ((1000)/ (FRAMES_PER_SECOND))
 
 //temporary location
-uint16_t keymap[16] = 
-{ SDLK_1, SDLK_2, SDLK_3, SDLK_4,
-  SDLK_q, SDLK_w, SDLK_e, SDLK_r,
-  SDLK_a, SDLK_s, SDLK_d, SDLK_f,
-  SDLK_z, SDLK_x, SDLK_c, SDLK_v
+static const SDL_Scancode keymap[16] = 
+{ SDL_SCANCODE_1, SDL_SCANCODE_2, SDL_SCANCODE_3, SDL_SCANCODE_4,
+  SDL_SCANCODE_Q, SDL_SCANCODE_W, SDL_SCANCODE_E, SDL_SCANCODE_R,
+  SDL_SCANCODE_A, SDL_SCANCODE_S, SDL_SCANCODE_D, SDL_SCANCODE_F,
+  SDL_SCANCODE_Z, SDL_SCANCODE_X, SDL_SCANCODE_C, SDL_SCANCODE_V
 };
   
 typedef struct 
@@ -44,7 +44,6 @@ int main (int argc, char* argv[])
 	uint32_t frame_speed;
 
 	SDL_Event event;
-	const Uint8* keyState = SDL_GetKeyboardState(NULL);
 	bool running = true;
 	
 	CH8_STATE* state = chip8_INIT(); 	
@@ -55,9 +54,8 @@ int main (int argc, char* argv[])
 	
 	while(running)
 	{
-		start_tick = SDL_GetTicks();
 		if(SDL_PollEvent(&event))
-			if(event.type == SDL_QUIT || keyState[SDLK_ESCAPE])
+			if(event.type == SDL_QUIT || SDL_GetKeyboardState(NULL)[SDL_SCANCODE_ESCAPE])
 			{
 				running = false;
 				exit(EXIT_SUCCESS);	
@@ -68,12 +66,7 @@ int main (int argc, char* argv[])
 			ch8_drawGraphics(display, state);
 			state->draw = false;
 		}
-		
-		frame_speed = SDL_GetTicks() - start_tick;
-		if(frame_speed < MILLISECONDS_PER_CYCLE)
-		{
-			SDL_Delay(MILLISECONDS_PER_CYCLE - frame_speed);
-		}
+		SDL_Delay(5);
 	}
 
 
@@ -145,7 +138,7 @@ CH8_STATE*  chip8_INIT()
 	memset(s->reg, 0, 0x10);
 	memset(s->stack, 0, 32);
 	memcpy(&s->memory[0x0], ch8_fontset, 80);
-	memset(s->gfx, 0, 0x800);
+	memset(s->gfx, PIXEL_OFF, sizeof(s->gfx));
 	
 	return s;
 }
@@ -209,7 +202,7 @@ void ch8_CYCLE(CH8_STATE* state)
 			switch(code[1])
 			{
 				case 0xE0: 
-					memset(state->gfx, 0, 0x800);
+					memset(state->gfx, PIXEL_OFF, sizeof(state->gfx));
 					state->pc += 2;
 					break;
 				case 0xEE:
@@ -359,12 +352,12 @@ void ch8_CYCLE(CH8_STATE* state)
 			switch(code[1])
 			{
 				case 0x9E:
-					if(keyState[keymap[state->reg[regX]]])
+					if(SDL_GetKeyboardState(NULL)[keymap[state->reg[regX]]])
 						state->pc += 2;
 					state->pc += 2;
 					break;
 				case 0xA1:	
-					if(!keyState[keymap[state->reg[regX]]])
+					if(!SDL_GetKeyboardState(NULL)[keymap[state->reg[regX]]])
 						state->pc += 2;
 					state->pc += 2;
 					break;
@@ -383,7 +376,7 @@ void ch8_CYCLE(CH8_STATE* state)
 				case 0x0A:
 					for(int i = 0; i < 0x10; i++)
 					{
-						if (keyState[keymap[i]])
+						if (SDL_GetKeyboardState(NULL)[keymap[i]])
 						{
 							state->reg[regX] = i;
 							state->pc += 2;
