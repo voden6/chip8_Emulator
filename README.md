@@ -5,4 +5,7 @@ developed by Joseph Weisbecker in the mid 1970's. Chip8 was originally developed
 TELMAC 1800 8-bit microcomputers. Made to allow video games to be more easily programmed for these computers.
 Later on they would start to appear for some models of graphing calculators.
 
-![picture](img/chip8_BRIX.png)
+![screenshot](chip8_BRIX.png)
+
+
+## Installing
