@@ -1,19 +1,18 @@
 CC=gcc
 CFLAGS=-I.
-DEPS = ch8.h
-OBJ = dissassembler.o
-EMU = ch8Emulator.o
-SDL = -lSDL
+LIBS = -lSDL2
 
-.phony: run
-run: dissassembler
-	./dissassembler TETRIS
+VPATH = src
 
-%.0: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+all: CH8Emulator CH8Dissassembler
 
-dissassembler: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS)
+CH8Emulator: ch8Emulator.c ch8.h
+	$(CC) -o CH8Emulator ./src/ch8Emulator.c $(LIBS) -g -I./src
 
-CH8Emulator: $(EMU)
-	$(CC) -o $@ $^ $(CFLAGS) $(SDL)
+CH8Dissassembler: dissassembler.c
+	$(CC) -o CH8Dissassembler ./src/dissassembler.c -I./src
+
+.PHONY: clean
+
+clean:
+	rm CH8Emulator CH8Dissassembler
